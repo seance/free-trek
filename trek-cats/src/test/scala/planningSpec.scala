@@ -1,4 +1,4 @@
-package freetrek.test
+package freetrek.cats.test
 
 import freetrek.domain._
 import freetrek.cats.execution.{Execution}
@@ -10,7 +10,7 @@ import cats.implicits._
 
 class ExpeditionPlanningSpec extends FlatSpec with Matchers with ExpeditionChecks {
 
-    behavior of "Expedition planning"
+    behavior of "Cats based expedition planning"
 
     it should "at least start up the Enterprise" in {
         checkExpeditionPlan(0, 10, Nil) { (dilithium, stages) =>
@@ -131,8 +131,8 @@ class ExpeditionPlanningSpec extends FlatSpec with Matchers with ExpeditionCheck
 trait ExpeditionChecks extends Execution with Interpreters {
 
     def checkExpeditionPlan
-        (warpSpeed: Int, dilithium: Int, expedition: Expedition)
-        (checks: (Int, List[List[SystemsOps]]) => Unit)
+        (warpSpeed: WarpSpeed, dilithium: Dilithium, expedition: Expedition)
+        (checks: (Dilithium, List[List[SystemsOps]]) => Unit)
     {
         val config = PlanConfig(warpSpeed)
         val state0 = PlanState(expedition, dilithium)

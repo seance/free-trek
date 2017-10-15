@@ -24,12 +24,14 @@ class ExpeditionPlanning[P[_]](implicit M: MonadPlan[P]) extends Coproducts {
     import M._
 
     type Plan = P[Free[Systems, Unit]]
+    type PlanList = P[List[Free[Systems, Unit]]]
 
-    def markExpendedDilithium(expended: Dilithium): Plan =
-        modify(s => s.copy(dilithium = s.dilithium - expended)).map(_ => Free.pure(()))
+    def markExpendedDilithium(expended: Dilithium): P[Unit] =
+        modify(s => s.copy(dilithium = s.dilithium - expended))
 
-    def discardFirstEncounter(): Plan =
-        modify(s => s.copy(expedition = s.expedition.tail)).map(_ => Free.pure(()))
+    def popFirstEncounter(): P[Encounter] = get.map(_.expedition.head) >>= { e =>
+        modify(s => s.copy(expedition = s.expedition.tail)).map(_ => e)
+    }
 
     def startIgnition(implicit C: WarpCore[Systems]): Plan =
         pure(C.turnCrankShaft())
@@ -85,17 +87,19 @@ class ExpeditionPlanning[P[_]](implicit M: MonadPlan[P]) extends Coproducts {
         yield warpJump >> encounter
     }
 
-    def planExpeditionStages(): P[List[Free[Systems, Unit]]] = get map (_.expedition) >>= { expedition =>
-        if (expedition.isEmpty) {
-            pure(List.empty)
-        } else for {
-            _ <- discardFirstEncounter
-            h <- planWarpToEncounter(expedition.head)
-            t <- planExpeditionStages
-        } yield h +: t
+    def planExpeditionStages(): PlanList = {
+        ifM(get map (_.expedition.isEmpty))(
+            pure(List.empty),
+            for {
+                e <- popFirstEncounter
+                h <- planWarpToEncounter(e)
+                t <- planExpeditionStages
+            }
+            yield h +: t
+        )
     }
 
-    def planExpedition(): P[List[Free[Systems, Unit]]] = {
+    def planExpedition(): PlanList = {
         for {
             ignition <- startIgnition
             stages <- planExpeditionStages
