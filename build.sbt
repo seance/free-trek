@@ -20,11 +20,20 @@ lazy val catsSettings = Seq(
         "org.scalatest" %% "scalatest" % "3.0.4" % "test")
 )
 
+lazy val freesSettings = Seq(
+    libraryDependencies ++= Seq(
+        compilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full),
+        "io.frees" %% "frees-core" % "0.4.0",
+        "org.typelevel" %% "cats-core" % "1.0.0-MF",
+        "org.typelevel" %% "cats-mtl-core" % "0.0.2",
+        "org.scalatest" %% "scalatest" % "3.0.4" % "test")
+)
+
 lazy val trek = project.in(file("."))
     .settings(moduleName := "free-trek")
     .settings(commonSettings)
-    .aggregate(trekDomain, trekCats)
-    .dependsOn(trekDomain, trekCats)
+    .aggregate(trekDomain, trekCats, trekFrees)
+    .dependsOn(trekDomain, trekCats, trekFrees)
 
 lazy val trekDomain = project.in(file("trek-domain"))
     .settings(moduleName := "trek-domain")
@@ -34,4 +43,10 @@ lazy val trekCats = project.in(file("trek-cats"))
     .settings(moduleName := "trek-cats")
     .settings(commonSettings)
     .settings(catsSettings)
+    .dependsOn(trekDomain)
+
+lazy val trekFrees = project.in(file("trek-frees"))
+    .settings(moduleName := "trek-frees")
+    .settings(commonSettings)
+    .settings(freesSettings)
     .dependsOn(trekDomain)

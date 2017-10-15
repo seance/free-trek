@@ -38,7 +38,7 @@ Encoding the logic operations in Free *reifies* the logic as data. This data can
 
 There are two implementations:
 - `trek-cats` A Cats-based manual Free encoding layered under a monadic planning façade
-- `trek-frees` Freestyle based implementation *(pending)*
+- `trek-frees` Freestyle based implementation with a `cats-mtl` planning façade
 
 Let's take a look at the manual to see how the Enterprise's systems operate.
 
