@@ -26,8 +26,8 @@ case class PlanState(expedition: Expedition, dilithium: Dilithium)
 class ExpeditionPlanning[P[_]](implicit M: Monad[P], P: MonadPlan[P]) {
     import M.pure, M.ifM, P.ask.ask, P.get, P.modify
 
-    type Plan = P[Free[FreeApplicative[Systems.Op, ?], Unit]]
-    type PlanList = P[List[Free[FreeApplicative[Systems.Op, ?], Unit]]]
+    type Plan = P[FreeS[Systems.Op, Unit]]
+    type PlanList = P[List[FreeS[Systems.Op, Unit]]]
 
     def markExpendedDilithium(expended: Dilithium): P[Unit] =
         modify(s => s.copy(dilithium = s.dilithium - expended))
@@ -47,27 +47,21 @@ class ExpeditionPlanning[P[_]](implicit M: Monad[P], P: MonadPlan[P]) {
 
     def planForSpaceCrab(implicit systems: Systems[Systems.Op]): Plan = pure {
         import systems._
-        for {
-            _ <- deflectorShields.repolarizeFrequencyModulator(DeflectorPolarity.Parallel)
-            _ <- phasers.focusOptronics(PhaserFrequency.NinetyNineTHz)
-            _ <- phasers.purgePrefireChamber
-        } yield ()
+        deflectorShields.repolarizeFrequencyModulator(DeflectorPolarity.Parallel) *>
+        phasers.focusOptronics(PhaserFrequency.NinetyNineTHz) *>
+        phasers.purgePrefireChamber
     }
 
     def planForAsteroidField(implicit systems: Systems[Systems.Op]): Plan = pure {
         import systems._
-        for {
-            _ <- warpCore.engageAntimatterReactionAssembly
-            _ <- deflectorShields.repolarizeFrequencyModulator(DeflectorPolarity.Antiparallel)
-        } yield ()
+        warpCore.engageAntimatterReactionAssembly *>
+        deflectorShields.repolarizeFrequencyModulator(DeflectorPolarity.Antiparallel)
     }
 
     def planForSpaceTimeAnomaly(implicit systems: Systems[Systems.Op]): Plan = pure {
         import systems._
-        for {
-            _ <- phasers.rewirePowerCellMatrix
-            _ <- deflectorShields.decompressGravitonEmitter
-        } yield ()
+        phasers.rewirePowerCellMatrix *>
+        deflectorShields.decompressGravitonEmitter
     }
 
     def planEncounter: Encounter => Plan = {
@@ -86,10 +80,10 @@ class ExpeditionPlanning[P[_]](implicit M: Monad[P], P: MonadPlan[P]) {
             w = math.min(warpSpeed, dilithium)
             _ <- markExpendedDilithium(w)
         }
-        yield for {
-            _ <- warpCore.convertDilithiumCrystals(w)
-            _ <- warpDrive.tuneWarpFieldCoil(w)
-        } yield ()
+        yield {
+            warpCore.convertDilithiumCrystals(w) *>
+            warpDrive.tuneWarpFieldCoil(w)
+        }
     }
 
     def planWarpToEncounter(e: Encounter): Plan = {
@@ -97,7 +91,7 @@ class ExpeditionPlanning[P[_]](implicit M: Monad[P], P: MonadPlan[P]) {
             warpJump <- planWarpJump
             encounter <- planEncounter(e)
         }
-        yield warpJump >> encounter
+        yield warpJump *> encounter
     }
 
     def planExpeditionStages(): PlanList = {
